@@ -1,14 +1,39 @@
+from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser, Permission, Group
 from django.utils.translation import gettext_lazy as _
 
 from django.db import models
 
+
 # Create your models here.
+
+class CustomUserManager(BaseUserManager):
+    def create_user(self, username, email, password=None, **extra_fields):
+        if not username:
+            raise ValueError('Username is required')
+        email = self.normalize_email(email)
+        user = self.model(username=username.strip(), email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(username, email, password, **extra_fields)
+
+
 class User(AbstractUser):
     first_name = models.CharField(max_length=200)
     last_name = models.CharField(max_length=200)
-    username = models.CharField(max_length=200, unique = True)
-    email = models.EmailField(('email address'), unique = True)
+    username = models.CharField(max_length=200, unique=True)
+    email = models.EmailField(('email address'), unique=True)
     linkedin = models.CharField(max_length=200)
     resume = models.CharField(max_length=200)
     about = models.TextField()
@@ -24,10 +49,13 @@ class User(AbstractUser):
     )
 
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'username', 'email', 'linkedin', 'resume', 'about']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'email', 'linkedin', 'resume', 'about']
+
+    objects = CustomUserManager()
 
     def __str__(self):
         return self.username
+
 
 class Projects(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -35,9 +63,17 @@ class Projects(models.Model):
     description = models.TextField()
     link = models.CharField(max_length=200)
 
+    def __str__(self):
+        return self.title
+
+
 class Skills(models.Model):
-    project =models.ForeignKey(Projects, on_delete=models.CASCADE)
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name
+
 
 class Portfolio(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -45,3 +81,6 @@ class Portfolio(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.slug
