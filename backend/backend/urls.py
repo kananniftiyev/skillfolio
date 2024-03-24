@@ -22,5 +22,5 @@ from core.views import PortfolioView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('app/', include('core.urls'))
+    path('api/', include('core.urls'))
 ]
