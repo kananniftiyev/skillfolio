@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-
 import jwt
 from django.http import Http404, JsonResponse
 from django.shortcuts import render, get_object_or_404
@@ -7,16 +5,13 @@ from rest_framework import status
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from utils import *
 from .models import *
 from .serializers import *
 from django.contrib.auth import authenticate
 
+
 # Create your views here.
-
-jwt_expiration_time = datetime.now() + timedelta(hours=48)  # Expires in 48 hours
-
-
 class LoginView(APIView):
     """
     View for user login. Validates user credentials and issues JWT token upon successful authentication.
@@ -35,9 +30,9 @@ class LoginView(APIView):
         """
         jwt_token = request.COOKIES.get('jwt')
 
-        if jwt_token:
-            if self.is_jwt_valid(jwt_token):
-                return JsonResponse({'message': 'Already logged in'})
+        # TODO: Check if this works.
+        if jwt_token and is_jwt_valid(jwt_token):
+            return JsonResponse({'message': 'Already logged in'})
 
         username = request.data.get('username')
         password = request.data.get('password')
@@ -45,42 +40,14 @@ class LoginView(APIView):
         user = authenticate(username=username, password=password)
 
         if user:
-            jwt_token = jwt.encode({'username': username, 'exp': jwt_expiration_time}, "asdf",
-                                   algorithm='HS256')
+            jwt_token = jwt.encode({'username': username, 'exp': JWT_EXP_DATE}, JWT_SECRET_KEY, algorithm='HS256')
 
-            response = JsonResponse(
-                {
-                    'message': 'Logged in successfully'
-                }
-            )
+            response = JsonResponse({'message': 'Logged in successfully'})
 
-            response.set_cookie(key='jwt', value=jwt_token, httponly=True, expires=jwt_expiration_time)
+            response.set_cookie(key='jwt', value=jwt_token, httponly=True, expires=JWT_EXP_DATE)
             return response
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    def is_jwt_valid(self, jwt_token=None) -> bool:
-        """
-        Check if the JWT token is valid.
-
-        Parameters:
-            - jwt_token (str): JWT token to be validated.
-
-        Returns:
-            - bool: True if the token is valid, False otherwise.
-        """
-        try:
-            decoded_token = jwt.decode(jwt_token, verify=False)  # Decoding without verification
-            expiration_time = datetime.fromtimestamp(decoded_token['exp'])
-            current_time = datetime.utcnow()
-            return current_time < expiration_time
-        except jwt.ExpiredSignatureError:
-            return False
-        except jwt.InvalidTokenError:
-            return False
-
-
-
 
 
 class RegisterView(APIView):
@@ -102,13 +69,13 @@ class RegisterView(APIView):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            jwt_token = jwt.encode({'username': user.username, 'exp': jwt_expiration_time}, "asdf",
+            jwt_token = jwt.encode({'username': user.username, 'exp': JWT_EXP_DATE}, JWT_SECRET_KEY,
                                    algorithm='HS256')
             response = JsonResponse({
                 'message': 'User created successfully',
             })
 
-            response.set_cookie(key='jwt', value=str(jwt_token), httponly=True, expires=jwt_expiration_time)
+            response.set_cookie(key='jwt', value=str(jwt_token), httponly=True, expires=JWT_EXP_DATE)
             return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -150,7 +117,7 @@ class PortfolioView(APIView):
 
     def get(self, request, slug):
         """
-        Handle GET request to retrieve portfolio details of a user.
+        Handle GET request to retrieve portfolio.
 
         Parameters:
         - request (HttpRequest): HTTP request object.
@@ -169,11 +136,8 @@ class PortfolioView(APIView):
         projects_with_skills_data = []
 
         for project_instance in projects_queryset:
-            # First get skills for specific project then serialize it.
-            # After that in project_data serializer dict add new key and value for skills.
-            # Then append it to list, so we can iterate over other projects too.
-            skills = Skills.objects.filter(project=project_instance)
-            skills_data = SkillSerializer(skills, many=True).data
+            skills_queryset = Skills.objects.filter(project=project_instance)
+            skills_data = SkillSerializer(skills_queryset, many=True).data
 
             project_data = ProjectSerializer(project_instance).data
             project_data['skills'] = skills_data
@@ -187,3 +151,20 @@ class PortfolioView(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+# TODO: Return User Details and settings.
+class UserView(APIView):
+    """
+    if jwt cookie is true and jwt does not expire:
+        decodeJWTGetUsername()
+        getUserOr404(username)
+        userSerializer(user)
+
+        return JSONResponse of user details.
+
+
+    else:
+        return message: User Needs to be logged in.
+    """
+    pass
