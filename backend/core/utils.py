@@ -17,7 +17,7 @@ def is_jwt_valid(jwt_token=None) -> bool:
         - bool: True if the token is valid, False otherwise.
     """
     try:
-        decoded_token = jwt.decode(jwt_token, verify=False)  # Decoding without verification
+        decoded_token = jwt.decode(jwt_token,JWT_SECRET_KEY, algorithms=['HS256'] ,verify=False)  # Decoding without verification
         expiration_time = datetime.fromtimestamp(decoded_token['exp'])
         current_time = datetime.utcnow()
         return current_time < expiration_time
@@ -25,3 +25,20 @@ def is_jwt_valid(jwt_token=None) -> bool:
         return False
     except jwt.InvalidTokenError:
         return False
+
+
+def get_username_from_token(jwt_token = None) -> str:
+    """
+    Get the username from the JWT token
+
+    :param jwt_token:
+    :return: String with the username
+    """
+    try:
+        decoded_token = jwt.decode(jwt_token, JWT_SECRET_KEY, algorithms=['HS256'])
+        username = decoded_token['username']
+        return username
+    except jwt.ExpiredSignatureError:
+        return "Expired token"
+    except jwt.InvalidTokenError:
+        return "Invalid token"

@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from utils import *
+from .utils import *
 from .models import *
 from .serializers import *
 from django.contrib.auth import authenticate
@@ -155,16 +155,27 @@ class PortfolioView(APIView):
 
 # TODO: Return User Details and settings.
 class UserView(APIView):
-    """
-    if jwt cookie is true and jwt does not expire:
-        decodeJWTGetUsername()
-        getUserOr404(username)
-        userSerializer(user)
 
-        return JSONResponse of user details.
+    renderer_classes = [JSONRenderer]
 
+    def get(self, request):
+        """
+            Handle GET request to retrieve User.
 
-    else:
-        return message: User Needs to be logged in.
-    """
-    pass
+            Parameters:
+                - request (HttpRequest): HTTP request object.
+
+            Returns:
+                - Response: JSON response containing user details.
+            """
+        jwt_token = request.COOKIES.get("jwt")
+
+        if jwt_token and is_jwt_valid(jwt_token):
+            username = get_username_from_token(jwt_token)
+
+            user = User.objects.get(username=username)
+            serializer = UserSerializer(user)
+            return Response(serializer.data)
+
+        else:
+            return JsonResponse({"message": "User Needs to be logged in."})
