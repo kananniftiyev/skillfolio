@@ -1,5 +1,5 @@
 import jwt
-from django.http import Http404, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from rest_framework import status
 from rest_framework.renderers import JSONRenderer
@@ -153,8 +153,7 @@ class PortfolioView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-# TODO: Return User Details and settings.
-class UserView(APIView):
+class UserDetailView(APIView):
 
     renderer_classes = [JSONRenderer]
 
@@ -179,3 +178,45 @@ class UserView(APIView):
 
         else:
             return JsonResponse({"message": "User Needs to be logged in."})
+
+
+    def put(self, request):
+        """
+        Update user information.
+        :param request:
+        :return:
+        """
+        jwt_token = request.COOKIES.get("jwt")
+
+        if jwt_token and is_jwt_valid():
+            username = get_username_from_token(jwt_token)
+            user = User.objects.get(username=username)
+            serializer = UserSerializer(user, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponse({'message': 'User Updated.'})
+            else:
+                return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+    def delete(self, request):
+        """
+        Delete user.
+        :param request:
+        :return:
+        """
+        jwt_token = request.COOKIES.get("jwt")
+
+        if jwt_token and is_jwt_valid(jwt_token):
+            username = get_username_from_token(jwt_token)
+            User.objects.filter(username=username).delete()
+            return JsonResponse({'message': 'User Deleted.'})
+
+        else:
+            return JsonResponse({"message": "User Needs to be logged in."})
+
+
+
+
+
+
