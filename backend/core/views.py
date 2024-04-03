@@ -1,22 +1,18 @@
 from django.contrib.auth import authenticate
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import status
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from .jwt import *
 from .models import *
 from .serializers import *
 from .utils import *
 
 
 # Create your views here.
-class LoginView(APIView):
+class LoginView(BaseView):
     """
     View for user login. Validates user credentials and issues JWT token upon successful authentication.
     """
-    renderer_classes = [JSONRenderer]
 
     def post(self, request):
         """
@@ -50,11 +46,10 @@ class LoginView(APIView):
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-class RegisterView(APIView):
+class RegisterView(BaseView):
     """
     API view for user registration.
     """
-    renderer_classes = [JSONRenderer]
 
     def post(self, request):
         """
@@ -77,12 +72,10 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class LogoutView(APIView):
+class LogoutView(BaseView):
     """
     API view for logging out a user by removing JWT token from cookies.
     """
-
-    renderer_classes = [JSONRenderer]
 
     def post(self, request):
         """
@@ -106,11 +99,10 @@ class LogoutView(APIView):
             return JsonResponse({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class PortfolioView(APIView):
+class PortfolioView(BaseView):
     """
     API view for retrieving portfolio details of a user including their projects and skills.
     """
-    renderer_classes = [JSONRenderer]
 
     def get(self, request, slug):
         """
@@ -147,11 +139,10 @@ class PortfolioView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-class PortfolioCreateView(APIView):
+class PortfolioCreateView(BaseView):
     """
     ApiView for creating new Portfolio
     """
-    renderer_classes = [JSONRenderer]
 
     def post(self, request):
         """
@@ -198,9 +189,7 @@ class PortfolioCreateView(APIView):
         return JsonResponse({'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserDetailView(APIView):
-    renderer_classes = [JSONRenderer]
-
+class UserDetailView(BaseView):
     def get(self, request):
         """
             Handle GET request to retrieve User.
@@ -258,8 +247,6 @@ class UserDetailView(APIView):
             return JsonResponse({"message": "User Needs to be logged in."})
 
 
-class ProjectView(APIView):
-    renderer_classes = [JSONRenderer]
-
+class ProjectView(BaseView):
     def post(self, request):
         pass
