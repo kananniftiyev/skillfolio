@@ -1,14 +1,14 @@
-import jwt
+from django.contrib.auth import authenticate
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .utils import *
+
 from .models import *
 from .serializers import *
-from django.contrib.auth import authenticate
+from .utils import *
 
 
 # Create your views here.
@@ -69,11 +69,8 @@ class RegisterView(APIView):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            jwt_token = jwt.encode({'username': user.username, 'exp': JWT_EXP_DATE}, JWT_SECRET_KEY,
-                                   algorithm='HS256')
-            response = JsonResponse({
-                'message': 'User created successfully',
-            })
+            jwt_token = jwt.encode({'username': user.username, 'exp': JWT_EXP_DATE}, JWT_SECRET_KEY, algorithm='HS256')
+            response = JsonResponse({'message': 'User created successfully', })
 
             response.set_cookie(key='jwt', value=str(jwt_token), httponly=True, expires=JWT_EXP_DATE)
             return response
@@ -144,17 +141,64 @@ class PortfolioView(APIView):
 
             projects_with_skills_data.append(project_data)
 
-        data = {
-            'user': user_serializer.data,
-            'portfolio': portfolio_serializer.data,
-            'projects': projects_with_skills_data
-        }
+        data = {'user': user_serializer.data, 'portfolio': portfolio_serializer.data,
+                'projects': projects_with_skills_data}
 
         return Response(data, status=status.HTTP_200_OK)
 
 
-class UserDetailView(APIView):
+class PortfolioCreateView(APIView):
+    """
+    ApiView for creating new Portfolio
+    """
+    renderer_classes = [JSONRenderer]
 
+    def post(self, request):
+        """
+    Handle POST request to create a new portfolio.
+
+    Parameters:
+    - request (HttpRequest): HTTP request object containing user data.
+
+    Returns:
+    - JsonResponse: JSON response indicating the success or failure of the portfolio creation.
+      - If the JWT token is valid and the portfolio is successfully created, returns a JsonResponse
+        with a success message and status code 201 (Created).
+      - If the JWT token is missing or invalid, returns a JsonResponse with an error message and
+        status code 400 (Bad Request).
+      - If the portfolio already exists for the user, returns a JsonResponse with an error message
+        indicating the portfolio already exists and status code 400 (Bad Request).
+      - If there's missing required data in the request, returns a JsonResponse with an error message
+        indicating the missing data and status code 400 (Bad Request).
+      - If an unexpected error occurs during portfolio creation, returns a JsonResponse with an error
+        message indicating the error and status code 500 (Internal Server Error).
+    """
+        jwt_token = request.COOKIES.get("jwt")
+
+        if jwt_token and is_jwt_valid(jwt_token):
+            username = get_username_from_token(jwt_token)
+            user_instance = get_object_or_404(User, username=username)
+            portfolio_instance = Portfolio.objects.filter(user=user_instance).first()
+
+            if portfolio_instance is not None:
+                return JsonResponse({'message': 'Already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+            del portfolio_instance
+
+            try:
+                new_portfolio = Portfolio(user=user_instance, slug=username, title=request.data['title'],
+                                          description=request.data['description'])
+                new_portfolio.save()
+                return JsonResponse({'message': 'Portfolio created'}, status=status.HTTP_201_CREATED)
+            except KeyError:
+                return JsonResponse({'message': 'Missing required data'}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return JsonResponse({'message': str(e)})
+
+        return JsonResponse({'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserDetailView(APIView):
     renderer_classes = [JSONRenderer]
 
     def get(self, request):
@@ -179,7 +223,6 @@ class UserDetailView(APIView):
         else:
             return JsonResponse({"message": "User Needs to be logged in."})
 
-
     def put(self, request):
         """
         Update user information.
@@ -198,7 +241,6 @@ class UserDetailView(APIView):
             else:
                 return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
     def delete(self, request):
         """
         Delete user.
@@ -216,7 +258,8 @@ class UserDetailView(APIView):
             return JsonResponse({"message": "User Needs to be logged in."})
 
 
+class ProjectView(APIView):
+    renderer_classes = [JSONRenderer]
 
-
-
-
+    def post(self, request):
+        pass
