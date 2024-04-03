@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    "core.apps.CoreConfig",
+    "core",
     'rest_framework'
 ]
 
@@ -126,6 +126,8 @@ USE_I18N = True
 USE_TZ = True
 
 AUTH_USER_MODEL = 'core.User'
+
+
 
 
 

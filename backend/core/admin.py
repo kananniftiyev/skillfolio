@@ -3,6 +3,7 @@ from .models import *
 
 class UserAdmin(admin.ModelAdmin):
     list_display = ('username', 'email', 'date_joined')
+    model = User
 
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('user', 'title')

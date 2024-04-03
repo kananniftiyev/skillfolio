@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 
@@ -34,7 +34,6 @@ class LoginView(BaseView):
         password = request.data.get('password')
 
         user = authenticate(username=username, password=password)
-
         if user:
             jwt_token = jwt.encode({'username': username, 'exp': JWT_EXP_DATE}, JWT_SECRET_KEY, algorithm='HS256')
 
@@ -61,16 +60,44 @@ class RegisterView(BaseView):
         Returns:
             - JsonResponse: JSON response indicating successful user creation or error message.
         """
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            jwt_token = jwt.encode({'username': user.username, 'exp': JWT_EXP_DATE}, JWT_SECRET_KEY, algorithm='HS256')
-            response = JsonResponse({'message': 'User created successfully', })
+        User = get_user_model()
 
-            response.set_cookie(key='jwt', value=str(jwt_token), httponly=True, expires=JWT_EXP_DATE)
-            return response
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Extract user data from request
+        username = request.data.get('username')
+        password = request.data.get('password')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        email = request.data.get('email')
+        linkedin = request.data.get('linkedin')
+        resume = request.data.get('resume')
+        about = request.data.get('about')
 
+        if not all([username, password, first_name, last_name, email, linkedin, resume, about]):
+            return JsonResponse({'error': 'All form data must be entered'}, status=400)
+
+        if User.objects.filter(username=username).exists() or User.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'User with this username or email already exists'}, status=400)
+
+        # Create user instance
+        user = User(username=username, first_name=first_name, last_name=last_name,
+                    email=email, linkedin=linkedin, resume=resume, about=about)
+
+        # Set password using set_password method
+        user.set_password(password)
+
+        # Save user
+        user.save()
+
+        # Generate JWT token
+        jwt_token = jwt.encode({'username': user.username, 'exp': JWT_EXP_DATE}, JWT_SECRET_KEY, algorithm='HS256')
+
+        # Create response
+        response = JsonResponse({'message': 'User created successfully'})
+
+        # Set JWT token in cookie
+        response.set_cookie(key='jwt', value=str(jwt_token), httponly=True, expires=JWT_EXP_DATE)
+
+        return response
 
 class LogoutView(BaseView):
     """
@@ -249,4 +276,29 @@ class UserDetailView(BaseView):
 
 class ProjectView(BaseView):
     def post(self, request):
-        pass
+        jwt_token = request.COOKIES.get("jwt")
+
+        if jwt_token and is_jwt_valid(jwt_token):
+            username = get_username_from_token(jwt_token)
+            user_instance = User.objects.get(username=username)
+
+            try:
+                project = Projects(user=user_instance, title=request.data['title'],
+                                   description=request.data['description'], link=request.data['link'])
+                project.save()
+                skills_data = request.data.getlist('skills')
+
+                for skill_name in skills_data[:5]:  # Iterate over the first 5 skills (or less if less than 5 provided)
+                    skill = Skills(project=project, name=skill_name)
+                    skill.save()
+
+                return JsonResponse({'message': 'Project Added'})
+            except Exception as e:
+                return JsonResponse({'message': str(e)})
+
+
+
+        else:
+            return JsonResponse({"message": "User Needs to be logged in."})
+
+

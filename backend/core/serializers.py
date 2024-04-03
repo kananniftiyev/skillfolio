@@ -12,11 +12,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
         fields = ['id', 'username', 'first_name', 'last_name', 'email', 'linkedin', 'resume', 'about']
-        extra_kwargs = {'password': {'write_only': True}}
-
-    def create(self, validated_data):
-        user = models.User.objects.create_user(**validated_data)
-        return user
 
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
