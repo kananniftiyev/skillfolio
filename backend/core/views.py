@@ -1,11 +1,18 @@
+from typing import Union, Dict, Any
+
 from django.contrib.auth import authenticate, get_user_model
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from .jwt import *
 from .models import *
 from .serializers import *
 from .utils import *
+
+# Type aliases
+JSONResponse = Union[JsonResponse, Response]
+RequestData = Dict[str, Any]
 
 
 # Create your views here.
@@ -14,7 +21,7 @@ class LoginView(BaseView):
     View for user login. Validates user credentials and issues JWT token upon successful authentication.
     """
 
-    def post(self, request):
+    def post(self, request) -> JSONResponse:
         """
         Handle POST request for user login.
 
@@ -50,7 +57,7 @@ class RegisterView(BaseView):
     API view for user registration.
     """
 
-    def post(self, request):
+    def post(self, request) -> JSONResponse:
         """
         Handle POST request for user registration.
 
@@ -79,8 +86,8 @@ class RegisterView(BaseView):
             return JsonResponse({'error': 'User with this username or email already exists'}, status=400)
 
         # Create user instance
-        user = User(username=username, first_name=first_name, last_name=last_name,
-                    email=email, linkedin=linkedin, resume=resume, about=about)
+        user = User(username=username, first_name=first_name, last_name=last_name, email=email, linkedin=linkedin,
+                    resume=resume, about=about)
 
         # Set password using set_password method
         user.set_password(password)
@@ -99,12 +106,13 @@ class RegisterView(BaseView):
 
         return response
 
+
 class LogoutView(BaseView):
     """
     API view for logging out a user by removing JWT token from cookies.
     """
 
-    def post(self, request):
+    def post(self, request) -> JSONResponse:
         """
         Handle POST request for user logout.
 
@@ -131,7 +139,7 @@ class PortfolioView(BaseView):
     API view for retrieving portfolio details of a user including their projects and skills.
     """
 
-    def get(self, request, slug):
+    def get(self, request, slug: str) -> JSONResponse:
         """
         Handle GET request to retrieve portfolio.
 
@@ -171,7 +179,7 @@ class PortfolioCreateView(BaseView):
     ApiView for creating new Portfolio
     """
 
-    def post(self, request):
+    def post(self, request) -> JSONResponse:
         """
     Handle POST request to create a new portfolio.
 
@@ -217,7 +225,7 @@ class PortfolioCreateView(BaseView):
 
 
 class UserDetailView(BaseView):
-    def get(self, request):
+    def get(self, request) -> JSONResponse:
         """
             Handle GET request to retrieve User.
 
@@ -239,7 +247,7 @@ class UserDetailView(BaseView):
         else:
             return JsonResponse({"message": "User Needs to be logged in."})
 
-    def put(self, request):
+    def put(self, request) -> JSONResponse:
         """
         Update user information.
         :param request:
@@ -257,7 +265,7 @@ class UserDetailView(BaseView):
             else:
                 return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request):
+    def delete(self, request) -> JSONResponse:
         """
         Delete user.
         :param request:
@@ -275,7 +283,7 @@ class UserDetailView(BaseView):
 
 
 class ProjectView(BaseView):
-    def post(self, request):
+    def post(self, request) -> JSONResponse:
         jwt_token = request.COOKIES.get("jwt")
 
         if jwt_token and is_jwt_valid(jwt_token):
@@ -296,9 +304,26 @@ class ProjectView(BaseView):
             except Exception as e:
                 return JsonResponse({'message': str(e)})
 
-
-
         else:
             return JsonResponse({"message": "User Needs to be logged in."})
 
+    def delete(self, request) -> JSONResponse:
+        jwt_token = request.COOKIES.get("jwt")
+        if jwt_token and is_jwt_valid(jwt_token):
+            username = get_username_from_token(jwt_token)
+            user_instance = User.objects.get(username=username)
+            title = request.data.get('title')  # Use get() to avoid KeyError
 
+            try:
+                project = Projects.objects.filter(title=title, user=user_instance).first()
+                if project is None:
+                    raise NotFound("Project Not Found")
+                project.delete()
+                return Response({'message': 'Project Deleted'})  # Return a Response object
+            except Projects.DoesNotExist:
+                return Response({'message': 'Project not found'}, status=404)  # Return 404 if project not found
+            except Exception as e:
+                return Response({'message': str(e)}, status=500)  # Return 500 if any other exception occurs
+        else:
+            return Response({"message": "User Needs to be logged"},
+                            status=401)  # Return 401 if user needs to be logged in
