@@ -4,6 +4,8 @@ from django.contrib.auth import authenticate, get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 from .jwt import *
 from .models import *
@@ -13,6 +15,7 @@ from .utils import *
 # Type aliases
 JSONResponse = Union[JsonResponse, Response]
 RequestData = Dict[str, Any]
+
 
 
 # Create your views here.
@@ -139,6 +142,7 @@ class PortfolioView(BaseView):
     API view for retrieving portfolio details of a user including their projects and skills.
     """
 
+    @method_decorator(cache_page(1800))
     def get(self, request, slug: str) -> JSONResponse:
         """
         Handle GET request to retrieve portfolio.
@@ -225,6 +229,8 @@ class PortfolioCreateView(BaseView):
 
 
 class UserDetailView(BaseView):
+
+
     def get(self, request) -> JSONResponse:
         """
             Handle GET request to retrieve User.
