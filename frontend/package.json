@@ -1,20 +1,17 @@
 {
-  "name": "example-basic",
+  "name": "nuxt-app",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vinxi dev",
-    "build": "vinxi build",
-    "start": "vinxi start",
-    "version": "vinxi version"
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@solidjs/meta": "^0.29.2",
-    "@solidjs/router": "^0.13.1",
-    "@solidjs/start": "^0.7.7",
-    "solid-js": "^1.8.15",
-    "vinxi": "^0.3.10"
-  },
-  "engines": {
-    "node": ">=18"
+    "nuxt": "^3.11.2",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
   }
 }
