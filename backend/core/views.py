@@ -6,6 +6,8 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
+from django.core.cache import cache
+
 
 from .jwt import *
 from .models import *
@@ -142,7 +144,6 @@ class PortfolioView(BaseView):
     API view for retrieving portfolio details of a user including their projects and skills.
     """
 
-    @method_decorator(cache_page(1800))
     def get(self, request, slug: str) -> JSONResponse:
         """
         Handle GET request to retrieve portfolio.
@@ -154,6 +155,13 @@ class PortfolioView(BaseView):
         Returns:
         - Response: JSON response containing user details, portfolio details, projects, and associated skills.
         """
+        # Construct a custom cache key
+        cache_key = f"portfolio_{slug}"
+        # Check if the data is already cached
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data, status=status.HTTP_200_OK)
+
         user_instance = get_object_or_404(User, username=slug)
         portfolio_instance = get_object_or_404(Portfolio, slug=slug)
         projects_queryset = Projects.objects.filter(user=user_instance)
@@ -174,6 +182,8 @@ class PortfolioView(BaseView):
 
         data = {'user': user_serializer.data, 'portfolio': portfolio_serializer.data,
                 'projects': projects_with_skills_data}
+
+        cache.set(cache_key, data, timeout=1800)
 
         return Response(data, status=status.HTTP_200_OK)
 
@@ -226,6 +236,46 @@ class PortfolioCreateView(BaseView):
                 return JsonResponse({'message': str(e)})
 
         return JsonResponse({'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        """
+        Update a portfolio
+        :param request:
+        :return:
+        """
+        jwt_token = request.COOKIES.get("jwt")
+
+        if jwt_token and is_jwt_valid(jwt_token):
+            username = get_username_from_token(jwt_token)
+            user_instance = get_object_or_404(User, username=username)
+            portfolio_instance = Portfolio.objects.filter(user=user_instance).first()
+
+            if portfolio_instance is None:
+                return JsonResponse({'message': 'Portfolio does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+            title = request.data.get('title')
+            description = request.data.get('description')
+
+            try:
+                if title is None and description is None:
+                    return JsonResponse({"message": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
+                elif title is not None and description is None:
+                    portfolio_instance.title = title
+                elif description is not None and title is None:
+                    portfolio_instance.description = description
+                elif title is not None and description is not None:
+                    portfolio_instance.title = title
+                    portfolio_instance.description = description
+                portfolio_instance.save()
+
+                # Delete cache
+                cache_key = f"portfolio_{portfolio_instance.slug}"
+                cache.delete(cache_key)
+                return JsonResponse({'message': 'Portfolio updated successfully'}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return JsonResponse({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse({'message': 'Invalid or missing JWT token'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class UserDetailView(BaseView):
