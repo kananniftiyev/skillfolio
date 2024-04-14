@@ -8,7 +8,8 @@ Introducing Skillfolio, the ultimate platform to effortlessly showcase your tale
 - Django 🎶
 - Django REST Framework 🌐
 - NPM 📦
-- Solid.js 🌟
+- Vue.js💚
+- Nuxt.js🧩
 - Docker 🐳
 
 ## Frontend 💻
@@ -31,11 +32,12 @@ For detailed information about the backend of this project, please refer to the 
 
 - Django
 - Django REST framework
-- Solid.js
+- Vue.js
+- Nuxt.js
 - PostgreSQL
 - Redis
 - Docker
 
 ## License 📝
 
-This project is licensed under the MIT license - see the LICENSE.md file for details.
+This project is licensed under the GNU General Public License v3.0 - see the LICENSE.md file for details.
