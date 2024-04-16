@@ -39,6 +39,8 @@ class User(AbstractUser):
     linkedin = models.CharField(max_length=200)
     resume = models.CharField(max_length=200)
     about = models.TextField()
+    profile_pic = models.URLField(blank=True)
+
     # Define related_name for groups and user_permissions
     groups = models.ManyToManyField(Group, related_name='users_custom')
     user_permissions = models.ManyToManyField(

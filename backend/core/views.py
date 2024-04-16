@@ -4,9 +4,9 @@ from django.contrib.auth import authenticate, get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
 from django.core.cache import cache
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 from .jwt import *
@@ -26,6 +26,21 @@ class LoginView(BaseView):
     View for user login. Validates user credentials and issues JWT token upon successful authentication.
     """
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['username', 'password'],
+            properties={
+                'username': openapi.Schema(type=openapi.TYPE_STRING),
+                'password': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            400: openapi.Response('Invalid credentials', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            401: openapi.Response('Unauthorized', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
     def post(self, request) -> JSONResponse:
         """
         Handle POST request for user login.
@@ -62,6 +77,25 @@ class RegisterView(BaseView):
     API view for user registration.
     """
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['username', 'password', 'email'],
+            properties={
+                'username': openapi.Schema(type=openapi.TYPE_STRING),
+                'password': openapi.Schema(type=openapi.TYPE_STRING),
+                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+                'linkedin': openapi.Schema(type=openapi.TYPE_STRING),
+                'resume': openapi.Schema(type=openapi.TYPE_STRING),
+                'about': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            201: openapi.Response('Created', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            400: openapi.Response('Bad Request', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        })
     def post(self, request) -> JSONResponse:
         """
         Handle POST request for user registration.
@@ -117,6 +151,14 @@ class LogoutView(BaseView):
     API view for logging out a user by removing JWT token from cookies.
     """
 
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            400: openapi.Response('Bad Request', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            500: openapi.Response('Internal Server Error', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
+
     def post(self, request) -> JSONResponse:
         """
         Handle POST request for user logout.
@@ -143,6 +185,17 @@ class PortfolioView(BaseView):
     """
     API view for retrieving portfolio details of a user including their projects and skills.
     """
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('slug', openapi.IN_PATH, type=openapi.TYPE_STRING,
+                              description='Unique identifier for the user\'s portfolio')
+        ],
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            404: openapi.Response('Not Found', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
 
     def get(self, request, slug: str) -> JSONResponse:
         """
@@ -193,6 +246,21 @@ class PortfolioCreateView(BaseView):
     ApiView for creating new Portfolio
     """
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['title', 'description'],
+            properties={
+                'title': openapi.Schema(type=openapi.TYPE_STRING),
+                'description': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            201: openapi.Response('Created', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            400: openapi.Response('Bad Request', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            401: openapi.Response('Unauthorized', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
     def post(self, request) -> JSONResponse:
         """
     Handle POST request to create a new portfolio.
@@ -237,11 +305,30 @@ class PortfolioCreateView(BaseView):
 
         return JsonResponse({'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['title', 'description'],
+            properties={
+                'title': openapi.Schema(type=openapi.TYPE_STRING),
+                'description': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            400: openapi.Response('Bad Request', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            401: openapi.Response('Unauthorized', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
     def patch(self, request):
         """
         Update a portfolio
-        :param request:
-        :return:
+
+        Parameters:
+            - request (HttpRequest): HTTP request object containing updated portfolio data.
+
+        Returns:
+            - JsonResponse: JSON response indicating the success or failure of the portfolio update.
         """
         jwt_token = request.COOKIES.get("jwt")
 
@@ -280,7 +367,12 @@ class PortfolioCreateView(BaseView):
 
 class UserDetailView(BaseView):
 
-
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            401: openapi.Response('Unauthorized', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
     def get(self, request) -> JSONResponse:
         """
             Handle GET request to retrieve User.
@@ -303,11 +395,34 @@ class UserDetailView(BaseView):
         else:
             return JsonResponse({"message": "User Needs to be logged in."})
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'username': openapi.Schema(type=openapi.TYPE_STRING),
+                'password': openapi.Schema(type=openapi.TYPE_STRING),
+                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+                'linkedin': openapi.Schema(type=openapi.TYPE_STRING),
+                'resume': openapi.Schema(type=openapi.TYPE_STRING),
+                'about': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            400: openapi.Response('Bad Request', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
     def put(self, request) -> JSONResponse:
         """
         Update user information.
-        :param request:
-        :return:
+
+        Parameters:
+            - request (HttpRequest): HTTP request object containing updated user data.
+
+        Returns:
+            - JsonResponse: JSON response indicating the success or failure of the user update.
         """
         jwt_token = request.COOKIES.get("jwt")
 
@@ -321,11 +436,21 @@ class UserDetailView(BaseView):
             else:
                 return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            401: openapi.Response('Unauthorized', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
     def delete(self, request) -> JSONResponse:
         """
         Delete user.
-        :param request:
-        :return:
+
+        Parameters:
+            - request (HttpRequest): HTTP request object.
+
+        Returns:
+            - JsonResponse: JSON response indicating the success or failure of the user deletion.
         """
         jwt_token = request.COOKIES.get("jwt")
 
@@ -339,7 +464,34 @@ class UserDetailView(BaseView):
 
 
 class ProjectView(BaseView):
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['title', 'description', 'link', 'skills'],
+            properties={
+                'title': openapi.Schema(type=openapi.TYPE_STRING),
+                'description': openapi.Schema(type=openapi.TYPE_STRING),
+                'link': openapi.Schema(type=openapi.TYPE_STRING),
+                'skills': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+            }
+        ),
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            400: openapi.Response('Bad Request', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            401: openapi.Response('Unauthorized', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
     def post(self, request) -> JSONResponse:
+        """
+                Handle POST request to create a new project.
+
+                Parameters:
+                    - request (HttpRequest): HTTP request object containing project data.
+
+                Returns:
+                    - JsonResponse: JSON response indicating the success or failure of the project creation.
+                """
         jwt_token = request.COOKIES.get("jwt")
 
         if jwt_token and is_jwt_valid(jwt_token):
@@ -363,7 +515,30 @@ class ProjectView(BaseView):
         else:
             return JsonResponse({"message": "User Needs to be logged in."})
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['title'],
+            properties={
+                'title': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            400: openapi.Response('Bad Request', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            401: openapi.Response('Unauthorized', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+        }
+    )
     def delete(self, request) -> JSONResponse:
+        """
+               Handle DELETE request to delete a project.
+
+               Parameters:
+                   - request (HttpRequest): HTTP request object containing project title.
+
+               Returns:
+                   - JsonResponse: JSON response indicating the success or failure of the project deletion.
+               """
         jwt_token = request.COOKIES.get("jwt")
         if jwt_token and is_jwt_valid(jwt_token):
             username = get_username_from_token(jwt_token)

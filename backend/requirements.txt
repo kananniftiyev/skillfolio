@@ -4,3 +4,4 @@ djangorestframework~=3.15.0
 redis~=5.0.3
 djangorestframework-simplejwt
 django-redis
+drf-yasg
