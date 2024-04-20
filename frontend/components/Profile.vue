@@ -19,7 +19,7 @@
       <a
         href=""
         class="text-center rounded-md border-solid border hover:bg-[#63b874] bg-[#B2E0BB] transition-all duration-300 text-[#2A6B37] border-[#666] px-6 text-base py-2 max-w-[25%]"
-        >Open for work</a <!-- Finish This Button-->
+        >Open for work</a
       >
     </div>
   </div>

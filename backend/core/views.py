@@ -39,6 +39,7 @@ class LoginView(BaseView):
             200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
             400: openapi.Response('Invalid credentials', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
             401: openapi.Response('Unauthorized', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            409: openapi.Response('Conflict', schema=openapi.Schema(type=openapi.TYPE_OBJECT))
         }
     )
     def post(self, request) -> JSONResponse:
@@ -55,7 +56,7 @@ class LoginView(BaseView):
 
         # TODO: Check if this works.
         if jwt_token and is_jwt_valid(jwt_token):
-            return JsonResponse({'message': 'Already logged in'})
+            return JsonResponse({'message': 'Already logged in'}, status=status.HTTP_409_CONFLICT)
 
         username = request.data.get('username')
         password = request.data.get('password')
@@ -138,7 +139,7 @@ class RegisterView(BaseView):
         jwt_token = jwt.encode({'username': user.username, 'exp': JWT_EXP_DATE}, JWT_SECRET_KEY, algorithm='HS256')
 
         # Create response
-        response = JsonResponse({'message': 'User created successfully'})
+        response = JsonResponse({'message': 'User created successfully'},status=status.HTTP_201_CREATED)
 
         # Set JWT token in cookie
         response.set_cookie(key='jwt', value=str(jwt_token), httponly=True, expires=JWT_EXP_DATE)
@@ -156,6 +157,7 @@ class LogoutView(BaseView):
             200: openapi.Response('Success', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
             400: openapi.Response('Bad Request', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
             500: openapi.Response('Internal Server Error', schema=openapi.Schema(type=openapi.TYPE_OBJECT)),
+            409: openapi.Response('User already logged out', schema=openapi.Schema(type=openapi.TYPE_OBJECT))
         }
     )
 
@@ -171,7 +173,7 @@ class LogoutView(BaseView):
         """
 
         if 'jwt' not in request.COOKIES:
-            return JsonResponse({'error': 'Already logged out'})
+            return JsonResponse({'error': 'Already logged out'}, status=status.HTTP_409_CONFLICT)
 
         try:
             response = JsonResponse({'message': "Logged out successfully"}, status=status.HTTP_200_OK)
@@ -393,7 +395,7 @@ class UserDetailView(BaseView):
             return Response(serializer.data)
 
         else:
-            return JsonResponse({"message": "User Needs to be logged in."})
+            return JsonResponse({"message": "User Needs to be logged in."}, status=status.HTTP_401_UNAUTHORIZED)
 
     @swagger_auto_schema(
         request_body=openapi.Schema(
@@ -432,7 +434,7 @@ class UserDetailView(BaseView):
             serializer = UserSerializer(user, data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                return JsonResponse({'message': 'User Updated.'})
+                return JsonResponse({'message': 'User Updated.'}, status=status.HTTP_200_OK)
             else:
                 return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -508,12 +510,12 @@ class ProjectView(BaseView):
                     skill = Skills(project=project, name=skill_name)
                     skill.save()
 
-                return JsonResponse({'message': 'Project Added'})
+                return JsonResponse({'message': 'Project Added'}, status=status.HTTP_201_CREATED)
             except Exception as e:
                 return JsonResponse({'message': str(e)})
 
         else:
-            return JsonResponse({"message": "User Needs to be logged in."})
+            return JsonResponse({"message": "User Needs to be logged in."}, status=status.HTTP_401_UNAUTHORIZED)
 
     @swagger_auto_schema(
         request_body=openapi.Schema(
@@ -550,11 +552,11 @@ class ProjectView(BaseView):
                 if project is None:
                     raise NotFound("Project Not Found")
                 project.delete()
-                return Response({'message': 'Project Deleted'})  # Return a Response object
+                return Response({'message': 'Project Deleted'}, status=status.HTTP_200_OK)  # Return a Response object
             except Projects.DoesNotExist:
                 return Response({'message': 'Project not found'}, status=404)  # Return 404 if project not found
             except Exception as e:
                 return Response({'message': str(e)}, status=500)  # Return 500 if any other exception occurs
         else:
             return Response({"message": "User Needs to be logged"},
-                            status=401)  # Return 401 if user needs to be logged in
+                            status=status.HTTP_401_UNAUTHORIZED)  # Return 401 if user needs to be logged in
