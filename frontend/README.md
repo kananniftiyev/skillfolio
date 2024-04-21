@@ -1,75 +1,31 @@
-# Nuxt 3 Minimal Starter
+# Skillfolio - Frontend
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+## Table of Contents
 
-## Setup
+- [Usage](#usage)
+  - [Components](#components)
+  - [Pages](#pages)
 
-Make sure to install the dependencies:
+## Usage
 
-```bash
-# npm
-npm install
+### Components
 
-# pnpm
-pnpm install
+🛠️ **Navbar**: Navigate and brand your application with this versatile component.
 
-# yarn
-yarn install
+🔍 **Project**: Showcase project details elegantly using this component.
 
-# bun
-bun install
-```
+👤 **Profile**: Display user profiles seamlessly with this component.
 
-## Development Server
+📞 **Contact Card**: Present contact information neatly with this component.
 
-Start the development server on `http://localhost:3000`:
+### Pages
 
-```bash
-# npm
-npm run dev
+🖼️ **Portfolio Page**: Explore public portfolios, including your own, with this accessible page.
 
-# pnpm
-pnpm run dev
+📊 **Dashboard Page**: Manage portfolios, projects, and more efficiently from this control center.
 
-# yarn
-yarn dev
+🏠 **Index Page**: Welcome users to your site with this engaging entry point.
 
-# bun
-bun run dev
-```
+🔑 **Login Page**: Authenticate users securely with this essential login interface.
 
-## Production
-
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+📝 **Register Page**: Seamlessly onboard new users with this intuitive registration page.
